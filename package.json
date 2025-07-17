@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "@mui/icons-material": "^7.2.0",
+    "@mui/material": "^7.2.0",
+    "bcrypt": "^6.0.0",
+    "cloudinary": "^2.7.0",
+    "jsonwebtoken": "^9.0.2",
+    "lottie-react": "^2.4.1",
+    "mongoose": "^8.16.3",
+    "multer": "^2.0.1",
+    "react-confetti": "^6.4.0",
+    "react-countup": "^6.5.3",
+    "react-router-dom": "^7.6.3",
+    "react-select": "^5.10.2",
+    "streamifier": "^0.1.1",
+    "sweetalert": "^2.1.2"
+  }
+}
