@@ -4,7 +4,7 @@ import Trade from '../models/trade.js';
 
 dotenv.config();
 
-const mongoURI = process.env.MONGO_URI || 'mongodb+srv://Shivansh:S9816003623@shop.shfyv.mongodb.net/notehub';
+const mongoURI = process.env.MONGO_URI ;
 
 const trades = [
   { tradeCode: 'GCS', tradeName: 'Computer Science Engineering' },
