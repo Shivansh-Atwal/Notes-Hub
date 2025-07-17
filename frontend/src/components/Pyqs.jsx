@@ -15,7 +15,7 @@ function Pyqs({ token }) {
 
   useEffect(() => {
     // Fetch trades for dropdown
-    fetch('http://localhost:3000/trades')
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/trades`)
       .then(res => res.json())
       .then(data => setTrades(data))
       .catch(() => setTrades([]));
@@ -29,7 +29,7 @@ function Pyqs({ token }) {
   const fetchPyqs = async (tradeCode = '', semesterValue = '') => {
     setLoading(true);
     setError('');
-    let url = 'http://localhost:3000/pyqs?';
+    let url = `${import.meta.env.VITE_BACKEND_URL}/pyqs?`;
     if (tradeCode) url += `trade=${tradeCode}&`;
     if (semesterValue) url += `semester=${semesterValue}&`;
     try {
@@ -85,7 +85,7 @@ function Pyqs({ token }) {
     }
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:3000/pyqs/${verifyId}`, {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/pyqs/${verifyId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

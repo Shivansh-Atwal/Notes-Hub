@@ -15,7 +15,7 @@ function Notes({ token }) {
 
   useEffect(() => {
     // Fetch trades for dropdown
-    fetch('http://localhost:3000/trades')
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/trades`)
       .then(res => res.json())
       .then(data => setTrades(data))
       .catch(() => setTrades([]));
@@ -29,7 +29,7 @@ function Notes({ token }) {
   const fetchNotes = async (tradeCode = '', semesterValue = '') => {
     setLoading(true);
     setError('');
-    let url = 'http://localhost:3000/notes?';
+    let url = `${import.meta.env.VITE_BACKEND_URL}/notes?`;
     if (tradeCode) url += `tradeCode=${tradeCode}&`;
     if (semesterValue) url += `semester=${semesterValue}&`;
     try {
@@ -85,7 +85,7 @@ function Notes({ token }) {
     }
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:3000/notes/${verifyId}`, {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/notes/${verifyId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

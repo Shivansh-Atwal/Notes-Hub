@@ -18,7 +18,7 @@ function Upload({ token }) {
 
   useEffect(() => {
     // Fetch trades from backend
-    fetch('http://localhost:3000/trades')
+    fetch(`${import.meta.env.BACKEND_URL}/trades`)
       .then(res => res.json())
       .then(data => setTrades(data))
       .catch(() => setTrades([]));
@@ -27,7 +27,7 @@ function Upload({ token }) {
   useEffect(() => {
     // Fetch subjects for selected trade and semester
     if (trade && semester) {
-      fetch(`http://localhost:3000/subjects?trade=${trade}&semester=${semester}`)
+      fetch(`${import.meta.env.BACKEND_URL}/subjects?trade=${trade}&semester=${semester}`)
         .then(res => res.json())
         .then(data => setSubjects(data))
         .catch(() => setSubjects([]));
@@ -59,7 +59,7 @@ function Upload({ token }) {
     formData.append('type', type);
     try {
       const endpoint = type === 'pyq' ? 'pyqs/upload' : 'notes/upload';
-      const res = await fetch(`http://localhost:3000/${endpoint}`, {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/${endpoint}`, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData

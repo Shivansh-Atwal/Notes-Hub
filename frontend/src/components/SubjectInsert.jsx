@@ -29,7 +29,7 @@ const SubjectInsert = () => {
     }
     try {
       const tradeIds = selectedTrades.map(t => t.value);
-      const res = await fetch('http://localhost:3000/subjects', {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/subjects`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: subjectCode, name, trade: tradeIds, semester })
