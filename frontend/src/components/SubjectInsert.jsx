@@ -13,7 +13,7 @@ const SubjectInsert = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch('http://localhost:3000/trades')
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/trades`)
       .then(res => res.json())
       .then(data => setTrades(data))
       .catch(() => setTrades([]));
