@@ -4,7 +4,6 @@ dotenv.config();
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose'
-import pool from './connections/db.js';
 import authRoutes from './routes/auth.js';
 import tradeRoutes from './routes/trade.js';
 import subjectRoutes from './routes/subject.js';
@@ -26,9 +25,12 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+// Replace with your actual frontend deployed URL
+const allowedOrigins =process.env.CLIENT_ORIGIN;
+
 app.use(cors({
-  origin: process.env.CLIENT_ORIGIN,
-  credentials: true
+  origin: allowedOrigins,
+  credentials: true, // if you use cookies or authentication
 }));
 
 app.use(express.json());
@@ -42,11 +44,9 @@ app.use('/pyqs', pyqRoutes);
 
 app.get('/', async (req, res) => {
   try {
-    const result = await pool.query('SELECT NOW()');
-    res.json(result.rows);
+    res.send("hello");
   } catch (err) {
     console.error(err);
-    res.status(500).send("Database error");
   }
 });
 
