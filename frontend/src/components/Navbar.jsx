@@ -20,7 +20,7 @@ function Navbar({ onLogin, onSignup, user, onLogout, onUpload }) {
         />
       )}
       {/* Sidebar Drawer for mobile */}
-      <div className={`fixed top-0 right-0 h-full w-60 bg-white shadow-xl z-50 rounded-l-xl transform transition-all duration-300 sm:hidden mt-15 ${sidebarOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}> 
+      <div className={`fixed top-0 right-0 h-full w-60 bg-white shadow-xl z-50 rounded-l-xl transform transition-all duration-300 sm:hidden mt-25 ${!user ? 'mt-16' : ''} ${sidebarOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}> 
         <div className="flex flex-col h-full overflow-y-auto">
           {user && (
             <div className="pt-8 pb-4 px-6 text-center">
@@ -35,6 +35,9 @@ function Navbar({ onLogin, onSignup, user, onLogout, onUpload }) {
             {user && user.role === 'admin' && (
               <Link to="/subject-insert" onClick={() => handleSidebarNav()} className="text-green-700 font-medium px-3 py-2 rounded hover:bg-green-100/70 transition w-full text-left text-base">+ Add Subject</Link>
             )}
+            {user && user.role === 'admin' && (
+              <Link to="/trade-insert" onClick={() => handleSidebarNav()} className="text-indigo-700 font-medium px-3 py-2 rounded hover:bg-indigo-100/70 transition w-full text-left text-base">+ Add Trade</Link>
+            )}
             <button onClick={() => handleSidebarNav(onUpload)} className="flex items-center gap-2 px-4 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-800 transition w-full text-base">
               <span role="img" aria-label="upload">⬆️</span> Upload
             </button>
@@ -48,8 +51,8 @@ function Navbar({ onLogin, onSignup, user, onLogout, onUpload }) {
               </>
             ) : (
               <>
-                <button onClick={() => handleSidebarNav(onLogin)} className="px-4 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-800 transition w-full text-base">Login</button>
-                <button onClick={() => handleSidebarNav(onSignup)} className="px-4 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-700 transition w-full text-base">Sign Up</button>
+                <button onClick={() => handleSidebarNav(onLogin)} className="px-4 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-800 transition">Login</button>
+                <button onClick={() => handleSidebarNav(onSignup)} className="px-4 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-700 transition">Sign Up</button>
               </>
             )}
           </div>
@@ -76,6 +79,9 @@ function Navbar({ onLogin, onSignup, user, onLogout, onUpload }) {
           <Link to="/pyqs" className="text-blue-700 font-medium px-3 py-2 rounded hover:bg-blue-100/70 transition">PYQs</Link>
           {user && user.role === 'admin' && (
             <Link to="/subject-insert" className="text-green-700 font-medium px-3 py-2 rounded hover:bg-green-100/70 transition">+ Add Subject</Link>
+          )}
+          {user && user.role === 'admin' && (
+            <Link to="/trade-insert" className="text-indigo-700 font-medium px-3 py-2 rounded hover:bg-indigo-100/70 transition">+ Add Trade</Link>
           )}
         </div>
         {/* Right: Auth/Profile/Upload Buttons (desktop only) */}

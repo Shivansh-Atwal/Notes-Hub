@@ -8,6 +8,7 @@ import Notes from './components/Notes';
 import LandingPage from './components/LandingPage';
 import Pyqs from './components/Pyqs';
 import SubjectInsert from './components/SubjectInsert';
+import InsertTrade from './components/InsertTrade';
 
 function UploadPage() {
   return (
@@ -147,6 +148,7 @@ function AppWrapper() {
             {user && user.role === 'admin' ? <SubjectInsert /> : null}
           </ProtectedRoute>
         } />
+        <Route path="/trade-insert" element={<InsertTrade user={user} token={token} />} />
       </Routes>
     </>
   );

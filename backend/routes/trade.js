@@ -3,15 +3,9 @@ import Trade from '../models/trade.js';
 
 const router = express.Router();
 
-// GET all trades or a trade by tradeCode
+// GET all trades
 router.get('/', async (req, res) => {
   try {
-    const { tradeCode } = req.query;
-    if (tradeCode) {
-      const trade = await Trade.findOne({ tradeCode });
-      if (trade) return res.json(trade);
-      return res.status(404).json({ error: 'Trade not found' });
-    }
     const trades = await Trade.find();
     res.json(trades);
   } catch (err) {
@@ -21,15 +15,20 @@ router.get('/', async (req, res) => {
 
 // POST create a new trade
 router.post('/', async (req, res) => {
-  const { name, description } = req.body;
-  if (!name) return res.status(400).json({ error: 'Name is required' });
+  const { tradeCode, tradeName } = req.body;
+  if (!tradeCode || !tradeName) {
+    return res.status(400).json({ error: 'Trade code and trade name are required.' });
+  }
   try {
-    const trade = new Trade({ name, description });
+    const trade = new Trade({ tradeCode: tradeCode.trim(), tradeName: tradeName.trim() });
     await trade.save();
-    res.status(201).json(trade);
+    res.status(201).json({ message: 'Trade inserted successfully!', trade });
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ error: 'Trade code already exists. Please use a different code.' });
+    }
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-export default router; 
+export default router;

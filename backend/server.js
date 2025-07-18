@@ -5,9 +5,9 @@ import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose'
 import authRoutes from './routes/auth.js';
-import tradeRoutes from './routes/trade.js';
 import subjectRoutes from './routes/subject.js';
 import notesRoutes from './routes/notes.js';
+import tradesRoutes from './routes/trade.js'
 import pyqRoutes from './routes/pyq.js';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -37,10 +37,10 @@ app.use(express.json());
 app.use(express.urlencoded({extended : true}));
 
 app.use('/auth', authRoutes);
-app.use('/trades', tradeRoutes);
 app.use('/subjects', subjectRoutes);
 app.use('/notes', notesRoutes);
 app.use('/pyqs', pyqRoutes);
+app.use('/trades',tradesRoutes);
 
 app.get('/', async (req, res) => {
   try {
@@ -48,6 +48,12 @@ app.get('/', async (req, res) => {
   } catch (err) {
     console.error(err);
   }
+});
+
+// Global error handler to ensure all errors return JSON
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 
