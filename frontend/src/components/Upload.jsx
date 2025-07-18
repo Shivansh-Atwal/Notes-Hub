@@ -18,7 +18,7 @@ function Upload({ token }) {
 
   useEffect(() => {
     // Fetch trades from backend
-    fetch(`${import.meta.env.BACKEND_URL}/trades`)
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/trades`)
       .then(res => res.json())
       .then(data => setTrades(data))
       .catch(() => setTrades([]));
@@ -27,7 +27,7 @@ function Upload({ token }) {
   useEffect(() => {
     // Fetch subjects for selected trade and semester
     if (trade && semester) {
-      fetch(`${import.meta.env.BACKEND_URL}/subjects?trade=${trade}&semester=${semester}`)
+      fetch(`${import.meta.env.VITE_BACKEND_URL}/subjects?trade=${trade}&semester=${semester}`)
         .then(res => res.json())
         .then(data => setSubjects(data))
         .catch(() => setSubjects([]));
