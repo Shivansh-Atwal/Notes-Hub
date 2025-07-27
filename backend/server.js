@@ -11,6 +11,9 @@ import tradesRoutes from './routes/trade.js'
 import pyqRoutes from './routes/pyq.js';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import session from 'express-session';
+// Removed: import RedisStore from 'connect-redis';
+// Removed: import { createClient } from 'redis';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -35,6 +38,14 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({extended : true}));
+
+// Use in-memory session store for development
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { maxAge: 4 * 24 * 60 * 60 * 1000 }
+}));
 
 app.use('/auth', authRoutes);
 app.use('/subjects', subjectRoutes);

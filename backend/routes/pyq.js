@@ -4,29 +4,44 @@ import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import streamifier from 'streamifier';
 import auth from '../middleware/auth.js';
+import Subject from '../models/subject.js';
+import Trade from '../models/trade.js';
+import { body, validationResult } from 'express-validator';
+import nodemailer from 'nodemailer';
+import User from '../models/users.js';
 
 const router = express.Router();
 
-// Multer config (memory storage)
+// Multer configuration
 const upload = multer({
   storage: multer.memoryStorage(),
   fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'application/pdf' || file.mimetype === 'image/jpeg') {
+    if (file.mimetype === 'application/pdf' || file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
       cb(null, true);
     } else {
-      cb(new Error('Only PDF and JPEG files are allowed'));
+      cb(new Error('Only PDF, PNG and JPEG files are allowed'));
     }
   }
 });
 
-// Cloudinary config (set your env vars)
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// GET PYQs by trade, subject, and semester
+
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
+  secure: process.env.SMTP_SECURE === 'true',
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+
 router.get('/', auth, async (req, res) => {
   if (!req.user || (req.user.role !== 'student' && req.user.role !== 'admin')) {
     return res.status(403).json({ error: 'Only students or admins can access PYQs.' });
@@ -46,48 +61,146 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// POST upload a PYQ (PDF/JPEG to Cloudinary)
-router.post('/upload', auth, upload.single('file'), async (req, res) => {
-  try {
-    // Access control: only students or admins
-    if (!req.user || (req.user.role !== 'student' && req.user.role !== 'admin')) {
-      return res.status(403).json({ error: 'Only students or admins can upload PYQs.' });
+
+router.post('/upload',
+  auth,
+  upload.single('file'),
+  [
+    body('title').isLength({ min: 3, max: 100 }).withMessage('Title must be 3-100 characters.'),
+    body('trade').notEmpty().withMessage('Trade is required.'),
+    body('subject').notEmpty().withMessage('Subject is required.'),
+    body('semester').isInt({ min: 1, max: 8 }).withMessage('Semester must be between 1 and 8.'),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: errors.array()[0].msg });
     }
-    const { title, trade, subject, semester } = req.body;
-    if (!req.file) return res.status(400).json({ error: 'File is required.' });
-    // Upload to Cloudinary
-    const streamUpload = (fileBuffer, mimetype) => {
-      return new Promise((resolve, reject) => {
-        const resourceType = mimetype === 'application/pdf' ? 'raw' : 'auto';
-        const stream = cloudinary.uploader.upload_stream(
-          { resource_type: resourceType, folder: 'pyqs' },
-          (error, result) => {
-            if (result) resolve(result);
-            else reject(error);
-          }
-        );
-        streamifier.createReadStream(fileBuffer).pipe(stream);
+
+    try {
+      if (!req.user || (req.user.role !== 'student' && req.user.role !== 'admin')) {
+        return res.status(403).json({ error: 'Only students or admins can upload PYQs.' });
+      }
+
+      const { title, trade, subject, semester, year } = req.body;
+      if (!req.file) return res.status(400).json({ error: 'File is required.' });
+
+      const streamUpload = (file, mimetype) => {
+        return new Promise((resolve, reject) => {
+          const resourceType = mimetype === 'application/pdf' ? 'raw' : 'auto';
+          const originalName = file.originalname;
+          const publicId = `pyqs/${originalName.substring(0, originalName.lastIndexOf('.'))}`;
+          const stream = cloudinary.uploader.upload_stream(
+            {
+              public_id: publicId,
+              resource_type: resourceType,
+              overwrite: true,
+              format: originalName.split('.').pop()
+            },
+            (error, result) => {
+              if (result) resolve(result);
+              else reject(error);
+            }
+          );
+          streamifier.createReadStream(file.buffer).pipe(stream);
+        });
+      };
+
+      const result = await streamUpload(req.file, req.file.mimetype);
+
+      const fileType = req.file.mimetype === 'application/pdf'
+        ? 'pdf'
+        : req.file.mimetype === 'image/png'
+          ? 'png'
+          : 'jpeg';
+
+      const pyq = new PYQ({
+        title,
+        trade,
+        subject,
+        semester,
+        year,
+        fileUrl: result.secure_url,
+        fileType: fileType,
+        uploadedBy: req.user._id
       });
+
+      await pyq.save();
+
+      // Send email notification to admins
+      const user = req.user;
+      const name = user.username;
+      const rollno = user.email.split('@')[0];
+      const adminUsers = await User.find({ role: 'admin' });
+      const adminEmails = adminUsers.map(u => u.email);
+      const adminMsg = `PYQ Document uploaded by: ${name} (Roll No: ${rollno})`;
+
+      if (adminEmails.length > 0) {
+        await transporter.sendMail({
+          from: process.env.SMTP_USER,
+          to: adminEmails,
+          subject: 'New PYQ Document Uploaded',
+          text: adminMsg
+        });
+      }
+
+      res.status(201).json({
+        pyq,
+        message: adminMsg
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message || 'Server error' });
+    }
+  }
+);
+
+
+router.get('/preview/:id', auth, async (req, res) => {
+  if (!req.user || (req.user.role !== 'student' && req.user.role !== 'admin')) {
+    return res.status(403).json({ error: 'Only students or admins can preview PYQs.' });
+  }
+
+  try {
+    const pyq = await PYQ.findById(req.params.id)
+      .populate({ path: 'subject', select: 'code name' })
+      .populate({ path: 'trade', select: 'tradeCode tradeName' });
+
+    if (!pyq) {
+      return res.status(404).json({ error: 'PYQ not found' });
+    }
+
+    // Extract public_id and version from fileUrl
+    const urlParts = pyq.fileUrl.split('/');
+    const fullFileName = urlParts[urlParts.length - 1];
+    const version = urlParts[urlParts.length - 2];
+    
+    const fileExtension = fullFileName.split('.').pop();
+    const publicId = `pyqs/${fullFileName}`;
+
+    const options = {
+      secure: true,
+      resource_type: pyq.fileType === 'pdf' ? 'raw' : 'image',
+      sign_url: true,
+      expires_at: Math.floor(Date.now() / 1000) + (60 * 60),
+      version: version.replace('v', ''),
+      format: fileExtension
     };
-    const result = await streamUpload(req.file.buffer, req.file.mimetype);
-    // Save PYQ
-    const pyq = new PYQ({
-      title,
-      trade,
-      subject,
-      semester,
-      fileUrl: result.secure_url,
-      fileType: req.file.mimetype === 'application/pdf' ? 'pdf' : 'jpeg',
-      uploadedBy: req.user._id
+
+    const secureUrl = cloudinary.url(publicId, options);
+
+    return res.json({
+      type: pyq.fileType,
+      url: secureUrl,
+      title: pyq.title
     });
-    await pyq.save();
-    res.status(201).json(pyq);
+
   } catch (err) {
-    res.status(500).json({ error: err.message || 'Server error' });
+    console.error('Preview error:', err);
+    res.status(500).json({ error: 'Server error generating preview URL' });
   }
 });
 
-// DELETE a PYQ by ID (admin only, with verification code)
+
 router.delete('/:id', auth, async (req, res) => {
   if (!req.user || req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Only admins can delete PYQs.' });
@@ -100,7 +213,7 @@ router.delete('/:id', auth, async (req, res) => {
   try {
     const pyq = await PYQ.findByIdAndDelete(req.params.id);
     if (!pyq) return res.status(404).json({ error: 'PYQ not found.' });
-    // Delete from Cloudinary if fileUrl exists
+    
     if (pyq.fileUrl) {
       const urlParts = pyq.fileUrl.split('/');
       const fileName = urlParts[urlParts.length - 1];
@@ -117,4 +230,4 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
-export default router; 
+export default router;

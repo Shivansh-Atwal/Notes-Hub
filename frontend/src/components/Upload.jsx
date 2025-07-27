@@ -3,7 +3,7 @@ import swal from 'sweetalert';
 
 const semesters = [1, 2, 3, 4, 5, 6, 7, 8];
 
-function Upload({ token }) {
+function Upload({ token, user }) {
   const [title, setTitle] = useState('');
   const [trade, setTrade] = useState('');
   const [semester, setSemester] = useState('');

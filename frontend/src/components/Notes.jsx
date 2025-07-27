@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import NotePreview from './NotePreview';
 
-function Notes({ token }) {
+function Notes({ token, user }) {
   const [trades, setTrades] = useState([]);
   const [trade, setTrade] = useState(''); // tradeCode
   const [semester, setSemester] = useState('');
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [user, setUser] = useState(null);
   const [showVerify, setShowVerify] = useState(false);
   const [verifyId, setVerifyId] = useState(null);
   const [adminCodeInput, setAdminCodeInput] = useState('');
   const [verifyError, setVerifyError] = useState('');
+  const [selectedNote, setSelectedNote] = useState(null);
 
   useEffect(() => {
     // Fetch trades for dropdown
@@ -19,11 +20,6 @@ function Notes({ token }) {
       .then(res => res.json())
       .then(data => setTrades(data))
       .catch(() => setTrades([]));
-  }, []);
-
-  useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) setUser(JSON.parse(savedUser));
   }, []);
 
   const fetchNotes = async (tradeCode = '', semesterValue = '') => {
@@ -112,14 +108,37 @@ function Notes({ token }) {
     setVerifyError('');
   };
 
+  const handlePreview = async (note) => {
+    try {
+     
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/notes/preview/${note._id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      
+      if (!res.ok) throw new Error('Failed to get preview URL');
+      
+      const data = await res.json();
+      setSelectedNote({
+        ...note,
+        secureUrl: data.url 
+      });
+    } catch (err) {
+      console.error('Preview error:', err);
+      
+      setError('Failed to load preview. Please try again.');
+    }
+  };
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-100 via-blue-50 to-slate-100 pt-20 sm:pt-32 pb-6 sm:pb-10 px-2 sm:px-0">
-      {/* Outer blurred border effect */}
+    <div className="min-h-screen flex flex-col items-center justify-baseline bg-gradient-to-br from-indigo-100 via-blue-50 to-slate-100 pt-20 sm:pt-32 pb-6 sm:pb-10 px-2 sm:px-0">
+      
       <div className="relative w-full flex justify-center items-center">
         <div className="absolute inset-0 z-0 rounded-3xl pointer-events-none" style={{ filter: 'blur(18px)', boxShadow: '0 0 0 8px rgba(59,130,246,0.15), 0 0 40px 8px rgba(59,130,246,0.10)' }}></div>
         <div className="relative z-10 w-full max-w-6xl flex flex-col justify-center items-center">
           {/* Hero Section */}
-          <div className="max-w-2xl w-full flex flex-col items-center justify-center text-center mb-6 sm:mb-10 px-2 sm:px-0 min-h-[160px]">
+          <div className="max-w-2xl w-full flex flex-col items-center justify-center text-center mb-1 sm:mb-10 px-2 sm:px-0 min-h-[160px]">
             <div className="flex flex-col items-center justify-center h-full w-full">
               <span className="text-4xl xs:text-5xl sm:text-6xl mb-2" role="img" aria-label="notes">📝</span>
               <h1 className="text-2xl xs:text-3xl sm:text-5xl font-extrabold text-blue-900 mb-2 drop-shadow-lg leading-tight">Browse All Notes</h1>
@@ -178,14 +197,12 @@ function Notes({ token }) {
                         </div>
                       </div>
                       <div className="flex flex-col gap-2 mt-4">
-                        <a
-                          href={note.fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          onClick={() => handlePreview(note)}
                           className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold text-center hover:bg-blue-800 transition shadow-md hover:shadow-lg"
                         >
                           View
-                        </a>
+                        </button>
                         {user && user.role === 'admin' && (
                           <button
                             onClick={() => handleDelete(note._id)}
@@ -221,10 +238,16 @@ function Notes({ token }) {
               </div>
             </div>
           )}
+          {selectedNote && (
+            <NotePreview 
+              note={selectedNote} 
+              onClose={() => setSelectedNote(null)}
+            />
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-export default Notes; 
+export default Notes;

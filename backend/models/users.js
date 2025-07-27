@@ -17,6 +17,16 @@ const userSchema = new mongoose.Schema({
         type: String,
         enum: ['student', 'admin'],
         default: 'student',
+    },
+    isVerified: {
+        type: Boolean,
+        default: false,
+    },
+    otp: {
+        type: String,
+    },
+    otpExpires: {
+        type: Date,
     }
 });
 

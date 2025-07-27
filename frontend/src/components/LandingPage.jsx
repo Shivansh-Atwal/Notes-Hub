@@ -11,79 +11,157 @@ const features = [
 ];
 
 const testimonials = [
-  {
-    name: 'Rohit Raj',
-    avatar: 'https://res.cloudinary.com/dqfelbf0m/image/upload/v1752685276/WhatsApp_Image_2025-07-16_at_22.30.12_fc2b6937_npwtl3.jpg',
-    quote: 'Even all toppers use this platform !',
-    branch: 'GCS, 3rd Year',
-  },
-  {
-    name: 'Simrandeep Singh',
-    avatar: 'https://res.cloudinary.com/dqfelbf0m/image/upload/v1752685275/WhatsApp_Image_2025-07-16_at_22.29.09_7c77dc72_ykztaj.jpg',
-    quote: 'All SLIET notes and PYQs in one place. Love it!',
-    branch: 'GEC, 3rd Year',
-  },
-  {
-    name: 'Rajiv Meena',
-    avatar: 'https://res.cloudinary.com/dqfelbf0m/image/upload/v1752687015/WhatsApp_Image_2025-07-16_at_22.54.24_a8f585b8_cblr2r.jpg',
-    quote: 'Uploading my notes was super easy and helped my juniors.',
-    branch: 'GCS, 3rd Year',
-  },
+  { name: 'Shivansh Atwal', role: 'Computer Science', text: 'Found all my semester notes here! Saved me hours of searching.' },
+  { name: 'Simrandeep Singh', role: 'Electronics', text: 'The PYQs section is gold! Helped me ace my exams.' },
+  { name: 'Satvik Chauhan', role: 'Mechanical', text: 'Uploaded my notes and helped 50+ students. Great community!' },
+  { name: 'Brinder Preet Singh', role: 'Electrical', text: 'Clean interface, easy to use. Exactly what students need.' },
 ];
 
-const LandingPage = () => {
+const LandingPage = ({ user: propUser }) => {
   const [testimonialIdx, setTestimonialIdx] = useState(0);
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
+  
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) setUser(JSON.parse(savedUser));
+    // Use prop user if available, otherwise check localStorage
+    if (propUser) {
+      setUser(propUser);
+    } else {
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) setUser(JSON.parse(savedUser));
+    }
+  }, [propUser]);
+
+  // Listen for localStorage changes
+  useEffect(() => {
+    const handleUserChange = () => {
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+      } else {
+        setUser(null);
+      }
+    };
+
+    // Listen for custom user change events
+    window.addEventListener('userStateChanged', handleUserChange);
+    
+    // Also listen for storage changes (for cross-tab sync)
+    window.addEventListener('storage', handleUserChange);
+    
+    return () => {
+      window.removeEventListener('userStateChanged', handleUserChange);
+      window.removeEventListener('storage', handleUserChange);
+    };
   }, []);
+
   const nextTestimonial = () => setTestimonialIdx((testimonialIdx + 1) % testimonials.length);
   const prevTestimonial = () => setTestimonialIdx((testimonialIdx - 1 + testimonials.length) % testimonials.length);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-100 via-blue-50 to-slate-100 pt-20 sm:pt-32 pb-6 sm:pb-10 px-2 sm:px-0">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-100 via-blue-50 to-slate-100 pt-20 sm:pt-32 pb-6 sm:pb-10 px-2 sm:px-0 relative overflow-x-hidden">
+      {/* Animated background shapes */}
+      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-full animate-gradient bg-gradient-to-br from-blue-100 via-indigo-100 to-slate-100 opacity-80" />
+        <div className="absolute left-1/4 top-1/3 w-72 h-72 bg-blue-200 rounded-full blur-3xl opacity-30 animate-pulse-slow" />
+        <div className="absolute right-1/4 bottom-1/4 w-80 h-80 bg-indigo-200 rounded-full blur-3xl opacity-30 animate-pulse-slow" />
+      </div>
       {/* Hero Section */}
-      <div className="max-w-2xl w-full text-center mb-6 sm:mb-10 px-2 sm:px-0">
+      <div className="max-w-2xl w-full text-center mb-8 sm:mb-14 px-2 sm:px-0">
         <div className="flex flex-col items-center mb-3 sm:mb-4">
-          <span className="text-4xl xs:text-5xl sm:text-6xl mb-2" role="img" aria-label="campus">🏫</span>
-          <h1 className="text-2xl xs:text-3xl sm:text-5xl font-extrabold text-blue-900 mb-2 drop-shadow-lg leading-tight">Welcome to SLIET Notes & PYQs Hub</h1>
-          <span className="text-blue-700 font-semibold text-sm xs:text-base sm:text-lg">Sant Longowal Institute of Engineering & Technology</span>
+          <span className="text-5xl xs:text-6xl sm:text-7xl mb-2 drop-shadow-lg" role="img" aria-label="campus">🎓</span>
+          <h1 className="text-3xl xs:text-4xl sm:text-5xl font-extrabold text-blue-900 mb-2 drop-shadow-lg leading-tight tracking-tight">SLIET Student Success Hub</h1>
+          <span className="text-blue-700 font-semibold text-base xs:text-lg sm:text-xl">Notes, PYQs, and More for Every SLIETian</span>
         </div>
-        <p className="text-sm xs:text-base sm:text-lg text-slate-700 mb-4 sm:mb-8">Access, upload, and search SLIET notes and previous year questions. Study smarter—anytime, anywhere!</p>
-        {!user && (
+        {user && (
+          <div className="mb-2 text-lg sm:text-xl font-semibold text-blue-800">Welcome back, {user.username}! 🚀</div>
+        )}
+        <p className="text-base xs:text-lg sm:text-xl text-slate-700 mb-6 sm:mb-10 font-medium">Your one-stop platform to <span className="text-blue-700 font-bold">find</span>, <span className="text-blue-700 font-bold">share</span>, and <span className="text-blue-700 font-bold">succeed</span> at SLIET.</p>
+        {!user ? (
           <button
-            className="w-full sm:w-auto px-6 xs:px-8 sm:px-12 py-2 xs:py-3 sm:py-4 rounded-xl bg-blue-700 text-white font-bold text-base xs:text-lg sm:text-xl shadow-lg hover:bg-blue-900 transition"
+            className="w-full sm:w-auto px-8 sm:px-14 py-3 sm:py-4 rounded-2xl bg-gradient-to-r from-blue-700 via-indigo-500 to-blue-400 text-white font-bold text-lg sm:text-xl shadow-xl hover:scale-105 hover:from-blue-900 hover:to-blue-600 transition-all duration-200"
             onClick={() => navigate('/signup')}
           >
-            Get Started
+            Join the Community
           </button>
+        ) : (
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mt-2">
+            <button
+              className="px-8 py-3 rounded-2xl bg-gradient-to-r from-blue-700 via-indigo-500 to-blue-400 text-white font-bold text-lg shadow-lg hover:scale-105 hover:from-blue-900 hover:to-blue-600 transition-all duration-200"
+              onClick={() => navigate('/upload')}
+            >
+              Upload Notes/PYQs
+            </button>
+            <button
+              className="px-8 py-3 rounded-2xl bg-gradient-to-r from-slate-200 via-blue-100 to-slate-50 text-blue-700 font-bold text-lg shadow-lg hover:scale-105 hover:bg-blue-100 transition-all duration-200"
+              onClick={() => navigate('/notes')}
+            >
+              Search Notes
+            </button>
+            <button
+              className="px-8 py-3 rounded-2xl bg-gradient-to-r from-slate-200 via-blue-100 to-slate-50 text-blue-700 font-bold text-lg shadow-lg hover:scale-105 hover:bg-blue-100 transition-all duration-200"
+              onClick={() => navigate('/pyqs')}
+            >
+              Search PYQs
+            </button>
+          </div>
         )}
       </div>
-      {/* Features Grid */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-3 xs:gap-4 sm:gap-8 justify-center mb-6 sm:mb-10 w-full max-w-5xl px-1 xs:px-2 sm:px-0">
-        {features.map((f) => (
-          <div key={f.title} className="bg-white/80 rounded-2xl shadow-lg p-4 xs:p-6 sm:p-10 flex flex-col items-center hover:scale-105 transition-transform backdrop-blur-md">
-            <span className="text-2xl xs:text-3xl sm:text-4xl mb-2 xs:mb-3 sm:mb-4">{f.icon}</span>
-            <h3 className="text-blue-700 font-bold text-sm xs:text-base sm:text-lg mb-1 xs:mb-2">{f.title}</h3>
-            <p className="text-slate-600 text-center text-xs xs:text-sm sm:text-base">{f.desc}</p>
+      {/* Modern Glassmorphic Features Grid */}
+      <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-6 xs:gap-8 sm:gap-12 justify-center mb-10 w-full max-w-6xl px-1 xs:px-2 sm:px-0">
+        {features.map((f, i) => (
+          <div key={f.title} className={
+            `relative bg-white/30 backdrop-blur-lg rounded-3xl shadow-2xl p-6 xs:p-8 sm:p-12 flex flex-col items-center border border-blue-100 hover:scale-105 transition-transform duration-200 group overflow-hidden` +
+            (i % 2 === 0 ? ' bg-gradient-to-br from-blue-50 via-white to-blue-100' : ' bg-gradient-to-tr from-indigo-50 via-white to-blue-100')
+          }>
+            <div className="absolute -top-6 -right-6 w-20 h-20 bg-blue-200 rounded-full opacity-20 group-hover:scale-110 transition-transform duration-200" />
+            <span className="text-4xl xs:text-5xl sm:text-6xl mb-3 drop-shadow-lg">{f.icon}</span>
+            <h3 className="text-blue-800 font-extrabold text-lg xs:text-xl sm:text-2xl mb-2 text-center drop-shadow">{f.title}</h3>
+            <p className="text-slate-700 text-center text-base xs:text-lg sm:text-xl font-medium drop-shadow-sm">{f.desc}</p>
           </div>
         ))}
       </div>
-      {/* Testimonial Carousel */}
-      <div className="max-w-xs xs:max-w-sm sm:max-w-xl w-full mx-auto bg-white/90 rounded-2xl shadow-lg p-4 xs:p-5 sm:p-8 flex flex-col items-center">
-        <img src={testimonials[testimonialIdx].avatar} alt={testimonials[testimonialIdx].name} className="w-12 h-12 xs:w-14 xs:h-14 sm:w-16 sm:h-16 rounded-full border-4 border-blue-300 mb-2 xs:mb-3" />
-        <div className="italic text-blue-900 text-sm xs:text-base sm:text-lg mb-2 xs:mb-3 sm:mb-4">“{testimonials[testimonialIdx].quote}”</div>
-        <div className="flex items-center gap-2 mb-1 xs:mb-2">
-          <span className="font-bold text-blue-700 text-xs xs:text-sm sm:text-base">{testimonials[testimonialIdx].name}</span>
-          <span className="text-slate-500 text-xs sm:text-sm">({testimonials[testimonialIdx].branch})</span>
-        </div>
-        <div className="flex gap-2 xs:gap-3 mt-2">
-          <button onClick={prevTestimonial} className="px-2 xs:px-3 py-1 rounded bg-blue-100 text-blue-700 font-bold hover:bg-blue-200 transition">&#8592;</button>
-          <button onClick={nextTestimonial} className="px-2 xs:px-3 py-1 rounded bg-blue-100 text-blue-700 font-bold hover:bg-blue-200 transition">&#8594;</button>
+      
+      {/* Testimonials Section */}
+      <div className="w-full max-w-4xl px-4 sm:px-6 mb-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-blue-900 text-center mb-8">What Students Say</h2>
+        <div className="relative bg-white/30 backdrop-blur-lg rounded-3xl shadow-2xl p-6 sm:p-8 border border-blue-100">
+          <div className="text-center mb-6">
+            <p className="text-lg sm:text-xl text-slate-700 italic mb-4">"{testimonials[testimonialIdx].text}"</p>
+            <div className="font-semibold text-blue-800">{testimonials[testimonialIdx].name}</div>
+            <div className="text-sm text-slate-600">{testimonials[testimonialIdx].role}</div>
+          </div>
+          <div className="flex justify-center gap-4">
+            <button
+              onClick={prevTestimonial}
+              className="p-2 rounded-full bg-blue-100 hover:bg-blue-200 text-blue-700 transition"
+              aria-label="Previous testimonial"
+            >
+              ←
+            </button>
+            <div className="flex gap-2">
+              {testimonials.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setTestimonialIdx(idx)}
+                  className={`w-2 h-2 rounded-full transition ${
+                    idx === testimonialIdx ? 'bg-blue-600' : 'bg-blue-200'
+                  }`}
+                  aria-label={`Go to testimonial ${idx + 1}`}
+                />
+              ))}
+            </div>
+            <button
+              onClick={nextTestimonial}
+              className="p-2 rounded-full bg-blue-100 hover:bg-blue-200 text-blue-700 transition"
+              aria-label="Next testimonial"
+            >
+              →
+            </button>
+          </div>
         </div>
       </div>
+      
     </div>
   );
 };

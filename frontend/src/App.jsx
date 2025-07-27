@@ -9,6 +9,8 @@ import LandingPage from './components/LandingPage';
 import Pyqs from './components/Pyqs';
 import SubjectInsert from './components/SubjectInsert';
 import InsertTrade from './components/InsertTrade';
+import ForgotPassword from './components/ForgotPassword';
+import NotesList from './components/NotesList';
 
 function UploadPage() {
   return (
@@ -96,18 +98,18 @@ function AppWrapper() {
     if (savedUser) setUser(JSON.parse(savedUser));
   }, []);
 
-
-
+  // Dispatch custom event when user state changes
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) setUser(JSON.parse(savedUser));
-  }, [token]);
+    window.dispatchEvent(new Event('userStateChanged'));
+  }, [user]);
 
   const handleLogout = () => {
     setToken('');
     setUser(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new Event('userStateChanged'));
     navigate('/');
   };
 
@@ -125,22 +127,23 @@ function AppWrapper() {
         />
       )}
       <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<Login setToken={setToken} />} />
-        <Route path="/signup" element={<Signup setToken={setToken} />} />
+        <Route path="/" element={<LandingPage user={user} />} />
+        <Route path="/login" element={<Login setToken={setToken} setUser={setUser} />} />
+        <Route path="/signup" element={<Signup setToken={setToken} setUser={setUser} />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/upload" element={
           <ProtectedRoute token={token}>
-            <Upload token={token} />
+            <Upload token={token} user={user} />
           </ProtectedRoute>
         } />
         <Route path="/notes" element={
           <ProtectedRoute token={token}>
-            <Notes token={token} />
+            <Notes token={token} user={user} />
           </ProtectedRoute>
         } />
         <Route path="/pyqs" element={
           <ProtectedRoute token={token}>
-            <Pyqs token={token} />
+            <Pyqs token={token} user={user} />
           </ProtectedRoute>
         } />
         <Route path="/subject-insert" element={

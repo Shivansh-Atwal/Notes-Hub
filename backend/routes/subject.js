@@ -3,7 +3,7 @@ import Subject from '../models/subject.js';
 
 const router = express.Router();
 
-// GET all subjects, optionally by trade and semester
+
 router.get('/', async (req, res) => {
   const { trade, semester } = req.query;
   const filter = {};
@@ -17,10 +17,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST create a new subject
+
 router.post('/', async (req, res) => {
   const { code, name, trade, semester } = req.body;
-  // trade must be a non-empty array
+ 
   if (!code || !name || !Array.isArray(trade) || trade.length === 0 || !semester) {
     return res.status(400).json({ error: 'Code, name, at least one trade, and semester are required' });
   }

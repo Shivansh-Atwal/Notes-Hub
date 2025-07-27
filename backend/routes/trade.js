@@ -3,7 +3,7 @@ import Trade from '../models/trade.js';
 
 const router = express.Router();
 
-// GET all trades
+
 router.get('/', async (req, res) => {
   try {
     const trades = await Trade.find();
@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST create a new trade
+
 router.post('/', async (req, res) => {
   const { tradeCode, tradeName } = req.body;
   if (!tradeCode || !tradeName) {

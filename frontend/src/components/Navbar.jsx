@@ -62,7 +62,7 @@ function Navbar({ onLogin, onSignup, user, onLogout, onUpload }) {
         {/* Left: Logo/Brand */}
         <div className="flex items-center gap-3">
           <span className="text-3xl" role="img" aria-label="book">📖</span>
-          <span className="text-2xl font-bold text-blue-700 tracking-tight">Notes & PYQs Hub</span>
+          <span className="text-2xl font-bold text-blue-700 tracking-tight">Notes-Hub</span>
         </div>
         {/* Hamburger for mobile (opens sidebar) */}
         <button

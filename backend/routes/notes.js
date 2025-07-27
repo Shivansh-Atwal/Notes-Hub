@@ -7,29 +7,41 @@ import auth from '../middleware/auth.js';
 import Subject from '../models/subject.js';
 import Trade from '../models/trade.js';
 import { body, validationResult } from 'express-validator';
+import nodemailer from 'nodemailer';
+import User from '../models/users.js';
 
 const router = express.Router();
 
-// Multer config (memory storage)
+
 const upload = multer({
   storage: multer.memoryStorage(),
   fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'application/pdf' || file.mimetype === 'image/jpeg') {
+    if (file.mimetype === 'application/pdf' || file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
       cb(null, true);
     } else {
-      cb(new Error('Only PDF and JPEG files are allowed'));
+      cb(new Error('Only PDF,PNG and JPEG files are allowed'));
     }
   }
 });
 
-// Cloudinary config (set your env vars)
+
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// GET notes by trade, subject, and semester
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
+  secure: process.env.SMTP_SECURE === 'true',
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+
 router.get('/', auth, async (req, res) => {
   if (!req.user || (req.user.role !== 'student' && req.user.role !== 'admin')) {
     return res.status(403).json({ error: 'Only students or admins can access notes.' });
@@ -40,14 +52,14 @@ router.get('/', auth, async (req, res) => {
 
   if (tradeCode) {
     try {
-      // Find the trade by tradeCode
+      
       const trade = await Trade.findOne({ tradeCode });
       console.log(trade);
       if (!trade) {
-        return res.json([]); // No trade found for code
+        return res.json([]); 
       }
       
-      // Filter notes directly by trade ObjectId
+      
       filter.trade = trade._id;
       console.log(trade._id);
       
@@ -70,7 +82,7 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// POST upload a note (PDF/JPEG to Cloudinary)
+
 router.post('/upload',
   auth,
   upload.single('file'),
@@ -86,46 +98,126 @@ router.post('/upload',
       return res.status(400).json({ error: errors.array()[0].msg });
     }
     try {
-      // Access control: only students or admins
+    
       if (!req.user || (req.user.role !== 'student' && req.user.role !== 'admin')) {
         return res.status(403).json({ error: 'Only students or admins can upload notes.' });
       }
       const { title, trade, subject, semester } = req.body;
       if (!req.file) return res.status(400).json({ error: 'File is required.' });
-      // Upload to Cloudinary
-      const streamUpload = (fileBuffer, mimetype) => {
+      
+      const streamUpload = (file, mimetype) => {
         return new Promise((resolve, reject) => {
           const resourceType = mimetype === 'application/pdf' ? 'raw' : 'auto';
+          const originalName = file.originalname; 
+          const publicId = `notes/${originalName.substring(0, originalName.lastIndexOf('.'))}`;
           const stream = cloudinary.uploader.upload_stream(
-            { resource_type: resourceType, folder: 'notes' },
+            {
+              public_id: publicId,
+              resource_type: resourceType,
+              overwrite: true,
+              format: originalName.split('.').pop() 
+            },
             (error, result) => {
               if (result) resolve(result);
               else reject(error);
             }
           );
-          streamifier.createReadStream(fileBuffer).pipe(stream);
+          streamifier.createReadStream(file.buffer).pipe(stream);
         });
       };
-      const result = await streamUpload(req.file.buffer, req.file.mimetype);
-      // Save note
+      const result = await streamUpload(req.file, req.file.mimetype);
+      
+      const fileType = req.file.mimetype === 'application/pdf'
+        ? 'pdf'
+        : req.file.mimetype === 'image/png'
+          ? 'png'
+          : 'jpeg';
       const note = new Note({
         title,
         trade,
         subject,
         semester,
         fileUrl: result.secure_url,
-        fileType: req.file.mimetype === 'application/pdf' ? 'pdf' : 'jpeg',
+        fileType: fileType,
         uploadedBy: req.user._id
       });
       await note.save();
-      res.status(201).json(note);
+     
+      const user = req.user;
+      const name = user.username;
+      const rollno = user.email.split('@')[0];
+      const adminUsers = await User.find({ role: 'admin' });
+      const adminEmails = adminUsers.map(u => u.email);
+      const adminMsg = `Document uploaded by: ${name} (Roll No: ${rollno})`;
+      if (adminEmails.length > 0) {
+        await transporter.sendMail({
+          from: process.env.SMTP_USER,
+          to: adminEmails,
+          subject: 'New Document Uploaded',
+          text: adminMsg
+        });
+      }
+      res.status(201).json({
+        note,
+        message: adminMsg
+      });
     } catch (err) {
       res.status(500).json({ error: err.message || 'Server error' });
     }
   }
 );
 
-// DELETE a note by ID (admin only, with verification code)
+
+router.get('/preview/:id', auth, async (req, res) => {
+  if (!req.user || (req.user.role !== 'student' && req.user.role !== 'admin')) {
+    return res.status(403).json({ error: 'Only students or admins can preview notes.' });
+  }
+
+  try {
+    const note = await Note.findById(req.params.id)
+      .populate({ path: 'subject', select: 'code name' })
+      .populate({ path: 'trade', select: 'tradeCode tradeName' });
+
+    if (!note) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
+    
+    const urlParts = note.fileUrl.split('/');
+    const fullFileName = urlParts[urlParts.length - 1];
+    const version = urlParts[urlParts.length - 2];
+    
+   
+    const fileExtension = fullFileName.split('.').pop();
+    
+    const publicId = `notes/${fullFileName}`;
+
+    
+    const options = {
+      secure: true,
+      resource_type: note.fileType === 'pdf' ? 'raw' : 'image',
+      sign_url: true,
+      expires_at: Math.floor(Date.now() / 1000) + (60 * 60),
+      version: version.replace('v', ''),
+      format: fileExtension 
+    };
+
+    const secureUrl = cloudinary.url(publicId, options);
+
+   
+    return res.json({
+      type: note.fileType,
+      url: secureUrl,
+      title: note.title
+    });
+
+  } catch (err) {
+    console.error('Preview error:', err);
+    res.status(500).json({ error: 'Server error generating preview URL' });
+  }
+});
+
+
 router.delete('/:id', auth, async (req, res) => {
   if (!req.user || req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Only admins can delete notes.' });
@@ -155,4 +247,4 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
-export default router; 
+export default router;
